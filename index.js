@@ -1,8 +1,8 @@
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
 const jwt = require('jsonwebtoken')
 const morgan = require('morgan')
 
@@ -87,8 +87,17 @@ async function run() {
     })
     // get all plants from db
     app.get('/plants', async (req, res) => {
-
       const result = await plantsCollection.find({}).toArray();
+      res.send(result)
+    })
+    // get a plant by id from db
+    app.get('/plants/:id', async (req, res) => {
+      const {id} = req.params;
+      const query = {_id: new ObjectId(id)}
+      const result = await plantsCollection.findOne(query)
+      if(!result){
+        return res.status(404).send({messege: 'Plant not found'})
+      }
       res.send(result)
     })
 

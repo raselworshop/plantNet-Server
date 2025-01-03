@@ -121,6 +121,33 @@ async function run() {
       const result = await plantsCollection.updateOne(filter, updateDoc)
       res.send(result)
     })
+    // get all orders from db for specific user
+    app.get('/customer/orders/:email', verifyToken, async (req, res) => {
+      const email = req.params.email;
+      const query = {'customer.email': email};
+      const result = await ordersCollection.aggregate([
+        {$match: query}, // match the query for a specific user
+        {$addFields: {
+          'plantId' : {$toObjectId: '$plantId'},// convert plantId to objectId to match with plant collection
+        }},
+        {$lookup: { // go to a different (plant) collection and get the plant info
+          from: 'plants', // collection name (to join)
+          localField: 'plantId', // local field (from orders collection) to match with foreign field
+          foreignField: '_id', // foreign field (from plant collection) to match with local field
+          as: 'plant' // return the data as plant array 
+        }},
+        {$unwind: '$plant'}, // return the data as object, from array
+        {$addFields: { // return only the wanted fields from plant collection
+          name: '$plant.name', // return these fields from plant collection
+          image: '$plant.image',
+          category: '$plant.category',
+        }},
+        {$project: { // remove the whole plant object and return only wanted fields, if put 1 it will return the field if 0 it won't return anything
+          plant: 0
+        }}
+      ]).toArray();
+      res.send(result)
+    })
 
     // save or update user in db 
     app.post('/users/:email', async (req, res) => {

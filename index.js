@@ -50,7 +50,8 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const usersCollection = client.db('plantNet').collection('users');
-    const plantsCollection = client.db('plantNet').collection('plants')
+    const plantsCollection = client.db('plantNet').collection('plants');
+    const ordersCollection = client.db('plantNet').collection('orders')
     // Generate jwt token
     app.post('/jwt', async (req, res) => {
       const email = req.body
@@ -98,6 +99,26 @@ async function run() {
       if(!result){
         return res.status(404).send({messege: 'Plant not found'})
       }
+      res.send(result)
+    })
+    // save ordered plants in db
+    app.post('/orders', verifyToken, async (req, res) => {
+      const orderInfo = req.body;
+      console.log(orderInfo)
+      const result = await ordersCollection.insertOne(orderInfo);
+      res.send(result)
+    })
+    // manage plant stock quantity
+    app.patch('/plants/quantity/:id', verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const {quantityUpdate} = req.body;
+      const filter = {_id: new ObjectId(id)}
+      let updateDoc = {
+        $inc: {
+          quantity: -quantityUpdate
+        }
+      }
+      const result = await plantsCollection.updateOne(filter, updateDoc)
       res.send(result)
     })
 

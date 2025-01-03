@@ -111,11 +111,18 @@ async function run() {
     // manage plant stock quantity
     app.patch('/plants/quantity/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
-      const {quantityUpdate} = req.body;
+      const {quantityUpdate, status} = req.body;
       const filter = {_id: new ObjectId(id)}
       let updateDoc = {
         $inc: {
           quantity: -quantityUpdate
+        }
+      }
+      if(status === 'increase'){
+        updateDoc = {
+          $inc: {
+            quantity: quantityUpdate
+          }
         }
       }
       const result = await plantsCollection.updateOne(filter, updateDoc)
@@ -146,6 +153,17 @@ async function run() {
           plant: 0
         }}
       ]).toArray();
+      res.send(result)
+    })
+    // cencel order by id for a specific user 
+    app.delete('/customer/orders/:id', verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)}
+      const order = await ordersCollection.findOne(query)
+      if(order.status === 'Shipped'){
+        return res.status(409).send({message: "You can't delete/cencel once the product shipped" })
+      }
+      const result = await ordersCollection.deleteOne(query)
       res.send(result)
     })
 
